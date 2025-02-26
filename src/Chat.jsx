@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import useSWR from "swr";
+
+const fetcher = (url) => fetch(url).then((r) => r.json());
+const BOT_API_URL = "https://mocki.io/v1/dd3c3357-e8b1-4d05-a050-38dcc2aa4bb9";
 
 export default function Chat() {
   const [messages, setMessages] = useState([
@@ -12,9 +16,23 @@ export default function Chat() {
   const [newMessage, setNewMessage] = useState("");
   const lastMessageRef = useRef(null);
 
+  const { data, mutate } = useSWR(
+    newMessage ? `${BOT_API_URL}?message=${newMessage}` : null,
+    fetcher
+  );
+
   useEffect(() => {
     lastMessageRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (data?.response) {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { text: data.response, sender: "friend" },
+      ]);
+    }
+  }, [data]);
 
   const handleNewMessage = () => {
     if (newMessage.trim() !== "") {
@@ -22,6 +40,7 @@ export default function Chat() {
         ...prevMessages,
         { text: newMessage, sender: "you" },
       ]);
+      mutate();
       setNewMessage("");
     }
   };
